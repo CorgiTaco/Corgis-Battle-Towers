@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "salt": 348457856,
+    "separation": 9,
+    "spacing": 36,
+    "spread_type": "triangular"
+  },
+  "structures": [
+    {
+      "structure": "examplemod:jungle_battle_tower",
+      "weight": 1
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "type": "examplemod:jungle_battle_tower",
+  "biomes": "#minecraft:is_jungle",
+  "spawn_overrides": {},
+  "step": "raw_generation"
+}
