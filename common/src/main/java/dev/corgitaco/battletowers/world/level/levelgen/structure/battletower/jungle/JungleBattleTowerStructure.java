@@ -69,7 +69,7 @@ public class JungleBattleTowerStructure extends Structure {
 
             Consumer<BlockPos> boxCreation = pos -> map.computeIfAbsent(ChunkPos.asLong(pos), key -> new UnsafeBoundingBox()).encapsulate(pos);
 
-            forAllPositions(origin, xoroshiroRandomSource, boxCreation, lists -> {
+            forAllPositions(origin, xoroshiroRandomSource, boxCreation, boxCreation, boxCreation, lists -> {
             }, boxCreation);
 
             for (UnsafeBoundingBox value : map.values()) {
@@ -84,18 +84,22 @@ public class JungleBattleTowerStructure extends Structure {
     }
 
 
-    public static void forAllPositions(BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
-        forAllPositions(8, 16, origin, randomSource, trunkPlacer, branchPlacer, leavePlacer);
+    public static void forAllPositions(BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer, Consumer<BlockPos> branchLogPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
+        forAllPositions(8, 16, origin, randomSource, trunkLogPlacer, trunkInsidePlacer, branchLogPlacer, branchPlacer, leavePlacer);
     }
 
-    public static void forAllPositions(int range, int width, BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
+    public static void forAllPositions(int range, int width, BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer, Consumer<BlockPos> branchLogPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
         LongList treeTrunkPositions = getTreeTrunkPositions(range, origin, randomSource);
-        LongSet positions = positions(treeTrunkPositions, width, trunkPlacer);
+        LongSet positions = generateTrunk(treeTrunkPositions, width, trunkLogPlacer, trunkInsidePlacer);
         generateBranches(randomSource, treeTrunkPositions, pos -> {
             if (!positions.contains(pos.asLong())) {
-                trunkPlacer.accept(pos);
+                branchLogPlacer.accept(pos);
             }
-        }, branchPlacer, leavePlacer);
+        }, branchPlacer, pos -> {
+            if (!positions.contains(pos.asLong())) {
+                leavePlacer.accept(pos);
+            }
+        });
     }
 
 
@@ -134,7 +138,7 @@ public class JungleBattleTowerStructure extends Structure {
     }
 
 
-    public static LongSet positions(LongList treeTrunkPositions, int width, Consumer<BlockPos> logPlacer) {
+    public static LongSet generateTrunk(LongList treeTrunkPositions, int width, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer) {
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 
         LongSet trunkPositions = new LongOpenHashBigSet();
@@ -165,8 +169,8 @@ public class JungleBattleTowerStructure extends Structure {
         trunkPositions.forEach(value -> {
             int y = BlockPos.getY(value);
             mutableBlockPos.set(value);
-            if (y % 10 == 5) {
-                logPlacer.accept(mutableBlockPos);
+            if (y % 10 == 0) {
+                trunkLogPlacer.accept(mutableBlockPos);
             }
 
             double noise = (improvedNoise.noise(mutableBlockPos.getX() * 0.1, mutableBlockPos.getY() * 0.1, mutableBlockPos.getZ() * 0.1) + 1) * 0.5;
@@ -185,7 +189,9 @@ public class JungleBattleTowerStructure extends Structure {
                 }
             }
             if (accept) {
-                logPlacer.accept(mutableBlockPos.set(value));
+                trunkLogPlacer.accept(mutableBlockPos);
+            } else {
+                trunkInsidePlacer.accept(mutableBlockPos);
             }
         });
 
