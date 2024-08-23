@@ -1,9 +1,9 @@
-package dev.corgitaco.battletowers.forge;
+package dev.corgitaco.battletowers.forge.platform;
 
 import com.google.auto.service.AutoService;
 import com.mojang.serialization.Codec;
 import dev.corgitaco.battletowers.ExampleMod;
-import dev.corgitaco.battletowers.RegistrationService;
+import dev.corgitaco.battletowers.platform.RegistrationService;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.Registry;

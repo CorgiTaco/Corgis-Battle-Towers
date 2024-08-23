@@ -1,0 +1,28 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"animation.durian_turret.shoot": {
+			"animation_length": 0.5,
+			"bones": {
+				"guns": {
+					"scale": {
+						"0.0": {
+							"vector": [1, 1, 1]
+						},
+						"0.0417": {
+							"vector": [1, 0.8, 1]
+						},
+						"0.25": {
+							"vector": [1, 1, 1],
+							"easing": "easeOutSine"
+						}
+					}
+				}
+			}
+		},
+		"animation.durian_turret.idle": {
+			"loop": true
+		}
+	},
+	"geckolib_format_version": 2
+}

@@ -1,9 +1,9 @@
-package dev.corgitaco.battletowers.fabric;
+package dev.corgitaco.battletowers.fabric.platform;
 
 import com.google.auto.service.AutoService;
 import com.mojang.serialization.Codec;
 import dev.corgitaco.battletowers.ExampleMod;
-import dev.corgitaco.battletowers.RegistrationService;
+import dev.corgitaco.battletowers.platform.RegistrationService;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.fabricmc.fabric.api.event.registry.FabricRegistryBuilder;
 import net.minecraft.core.MappedRegistry;
@@ -19,14 +19,14 @@ public class FabricRegistrationService implements RegistrationService {
 
     @Override
     public <T> Registry<T> createSimpleBuiltin(ResourceKey<Registry<T>> registryKey) {
-        MappedRegistry<T> registry = FabricRegistryBuilder.createSimple(registryKey).buildAndRegister();
-        return registry;
+        return FabricRegistryBuilder.createSimple(registryKey).buildAndRegister();
     }
 
     @Override
     public <T> Supplier<T> register(Registry<T> registry, String name, Supplier<T> value) {
-        Registry.register(registry, ExampleMod.id(name), value.get());
-        return value;
+        T value1 = value.get();
+        Registry.register(registry, ExampleMod.id(name), value1);
+        return () -> value1;
     }
 
     @Override

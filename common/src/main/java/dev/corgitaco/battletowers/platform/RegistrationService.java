@@ -1,4 +1,4 @@
-package dev.corgitaco.battletowers;
+package dev.corgitaco.battletowers.platform;
 
 import com.mojang.serialization.Codec;
 import net.minecraft.Util;

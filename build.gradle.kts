@@ -34,6 +34,7 @@ subprojects {
         maven("https://maven.fabricmc.net/")
         maven("https://maven.minecraftforge.net/")
         maven("https://maven.neoforged.net/releases/")
+        maven("https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/")
     }
 
     @Suppress("UnstableApiUsage")

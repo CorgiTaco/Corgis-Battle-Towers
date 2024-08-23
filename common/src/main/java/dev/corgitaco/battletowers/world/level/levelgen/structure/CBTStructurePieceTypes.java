@@ -1,6 +1,6 @@
 package dev.corgitaco.battletowers.world.level.levelgen.structure;
 
-import dev.corgitaco.battletowers.RegistrationService;
+import dev.corgitaco.battletowers.platform.RegistrationService;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.JungleBattleTowerPiece;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
@@ -16,5 +16,5 @@ public class CBTStructurePieceTypes {
         return RegistrationService.INSTANCE.register(BuiltInRegistries.STRUCTURE_PIECE, id, structureTypeSupplier);
     }
 
-    public static void init(){}
+    public static void structurePieceTypes(){}
 }

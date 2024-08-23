@@ -1,6 +1,6 @@
 package dev.corgitaco.battletowers.world.level.levelgen.structure;
 
-import dev.corgitaco.battletowers.RegistrationService;
+import dev.corgitaco.battletowers.platform.RegistrationService;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.JungleBattleTowerStructure;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.levelgen.structure.Structure;

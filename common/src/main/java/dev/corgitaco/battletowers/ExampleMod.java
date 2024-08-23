@@ -1,9 +1,9 @@
 package dev.corgitaco.battletowers;
 
 import com.mojang.logging.LogUtils;
+import dev.corgitaco.battletowers.world.entity.CBTEntityTypes;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructurePieceTypes;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructureTypes;
-import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructures;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 
@@ -20,8 +20,8 @@ public class ExampleMod {
      */
     public static void init() {
         CBTStructureTypes.structureTypes();
-        CBTStructurePieceTypes.init();
-
+        CBTStructurePieceTypes.structurePieceTypes();
+        CBTEntityTypes.entityTypes();
     }
 
     public static ResourceLocation id(String name) {

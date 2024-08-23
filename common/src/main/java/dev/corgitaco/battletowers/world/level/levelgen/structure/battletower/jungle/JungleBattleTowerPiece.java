@@ -1,9 +1,12 @@
 package dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle;
 
+import dev.corgitaco.battletowers.world.entity.CBTEntityTypes;
+import dev.corgitaco.battletowers.world.entity.DurianTurretEntity;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructurePieceTypes;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructures;
 import it.unimi.dsi.fastutil.longs.*;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -19,6 +22,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -97,6 +101,44 @@ public class JungleBattleTowerPiece extends StructurePiece {
                     }
                 });
             }
+        }
+
+
+        for (LongList branch : treeInfo.branchInfo().branches()) {
+
+
+            int tries = 0;
+            for (int i = 0; i < branch.size(); i++) {
+                long value = branch.getLong(i);
+
+                mutable.set(value);
+
+                if (this.boundingBox.isInside(mutable)) {
+
+                    tries++;
+
+                    if (random.nextDouble() < 0.01) {
+
+                        BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos().set(mutable);
+                        for (int y = 0; y < 20; y++) {
+                            if (chunk.getBlockState(mutableBlockPos).isAir()) {
+                                DurianTurretEntity entity = CBTEntityTypes.DURIAN_TURRET.get().create(level.getLevel());
+                                entity.setPos(Vec3.atBottomCenterOf(mutableBlockPos));
+                                level.addFreshEntity(entity);
+                                break;
+                            }
+                            mutableBlockPos.move(Direction.DOWN);
+                        }
+                    }
+                }
+
+            }
+
+
+            if (tries > 2) {
+                break;
+            }
+
         }
     }
 

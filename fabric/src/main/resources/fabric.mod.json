@@ -17,6 +17,9 @@
   "entrypoints": {
     "main": [
       "dev.corgitaco.battletowers.fabric.ExampleModFabric"
+    ],
+    "client": [
+      "dev.corgitaco.battletowers.fabric.client.ExampleModFabricClient"
     ]
   },
   "mixins": [
