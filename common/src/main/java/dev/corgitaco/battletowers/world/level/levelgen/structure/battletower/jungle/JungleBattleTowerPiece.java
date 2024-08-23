@@ -36,12 +36,20 @@ public class JungleBattleTowerPiece extends StructurePiece {
 
     @Override
     public void postProcess(WorldGenLevel level, StructureManager structureManager, ChunkGenerator generator, RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
+
         JungleBattleTowerStructure.forAllPositions(this.origin, new XoroshiroRandomSource(origin.asLong() + level.getSeed()), pos1 -> {
             if (box.isInside(pos1)) {
                 level.setBlock(pos1, Blocks.JUNGLE_WOOD.defaultBlockState(), 2);
             }
         }, branch -> {
         }, pos1 -> {
+            if (box.isInside(pos1)) {
+                if (level.getBlockState(pos1).isAir()) {
+                    level.setBlock(pos1, Blocks.JUNGLE_LEAVES.defaultBlockState(), 2);
+                    level.getChunk(pos1).markPosForPostprocessing(pos1);
+                }
+            }
+
         });
     }
 }

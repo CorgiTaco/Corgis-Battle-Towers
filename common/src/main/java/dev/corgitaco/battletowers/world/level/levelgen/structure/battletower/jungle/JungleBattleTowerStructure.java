@@ -4,10 +4,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructureTypes;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.UnsafeBoundingBox;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.*;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -78,8 +77,12 @@ public class JungleBattleTowerStructure extends Structure {
 
     public static void forAllPositions(int range, int width, BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
         LongList treeTrunkPositions = getTreeTrunkPositions(range, origin, randomSource);
-        positions(treeTrunkPositions, width, trunkPlacer);
-        generateBranches(randomSource, treeTrunkPositions, trunkPlacer, branchPlacer, leavePlacer);
+        LongSet positions = positions(treeTrunkPositions, width, trunkPlacer);
+        generateBranches(randomSource, treeTrunkPositions, pos -> {
+            if (!positions.contains(pos.asLong())) {
+                trunkPlacer.accept(pos);
+            }
+        }, branchPlacer, leavePlacer);
     }
 
 
@@ -89,7 +92,7 @@ public class JungleBattleTowerStructure extends Structure {
 
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos().set(origin);
 
-        int height = randomSource.nextInt(150, 200);
+        int height = randomSource.nextInt(150, 170);
 
         positions.add(mutableBlockPos.asLong());
 
@@ -118,9 +121,10 @@ public class JungleBattleTowerStructure extends Structure {
     }
 
 
-    public static void positions(LongList treeTrunkPositions, int width, Consumer<BlockPos> logPlacer) {
+    public static LongSet positions(LongList treeTrunkPositions, int width, Consumer<BlockPos> logPlacer) {
         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos();
 
+        LongSet trunkPositions = new LongOpenHashBigSet();
         for (int i = 0; i < treeTrunkPositions.size() - 1; i++) {
             long current = treeTrunkPositions.getLong(i);
             mutableBlockPos.set(current);
@@ -137,10 +141,42 @@ public class JungleBattleTowerStructure extends Structure {
 
             for (int step = 0; step < distance; step++) {
                 BlockPos offset = currentTrunkPos.offset((int) (normalize.x * step), (int) (normalize.y * step), (int) (normalize.z * step));
-                sphereAround(width, offset, logPlacer);
+                sphereAround(width, offset, pos -> trunkPositions.add(pos.asLong()));
             }
         }
 
+
+        ImprovedNoise improvedNoise = new ImprovedNoise(new LegacyRandomSource(0));
+
+
+        trunkPositions.forEach(value -> {
+            int y = BlockPos.getY(value);
+            mutableBlockPos.set(value);
+            if (y % 10 == 5) {
+                logPlacer.accept(mutableBlockPos);
+            }
+
+            double noise = (improvedNoise.noise(mutableBlockPos.getX() * 0.1, mutableBlockPos.getY() * 0.1, mutableBlockPos.getZ() * 0.1) + 1) * 0.5;
+
+            int maxDepth = (int) Mth.clampedLerp(1, 4, noise);
+
+            boolean accept = false;
+
+            for (int depth = 1; depth <= maxDepth; depth++) {
+                for (Direction direction : Direction.values()) {
+                    long other = BlockPos.asLong(BlockPos.getX(value) + (direction.getStepX() * depth), y + (direction.getStepY() * depth), BlockPos.getZ(value) + (direction.getStepZ() * depth));
+                    if (!trunkPositions.contains(other)) {
+                        accept = true;
+                        break;
+                    }
+                }
+            }
+            if (accept) {
+                logPlacer.accept(mutableBlockPos.set(value));
+            }
+        });
+
+        return trunkPositions;
     }
 
     private static void generateBranches(RandomSource randomSource, LongList treeTrunkPositions, Consumer<BlockPos> logPlacer, Consumer<List<BlockPos>> branchesGetter, Consumer<BlockPos> leavesPlacer) {
@@ -176,7 +212,7 @@ public class JungleBattleTowerStructure extends Structure {
             BlockPos currentTrunkPos = BlockPos.of(currentTreeTrunkPackedPosition);
 
             List<BlockPos> branchPositions = new ArrayList<>();
-            recursivelyGenerateBranches(1, randomSource.nextInt(10, 15), 3, UniformInt.of(15, 25), UniformInt.of(3, 7), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
+            recursivelyGenerateBranches(2, randomSource.nextInt(10, 15), 4, UniformInt.of(20, 40), UniformInt.of(7, 15), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
                 branchPositions.add(pos.immutable());
             }, leavesPlacer, currentTrunkPos, 0);
 
@@ -201,9 +237,24 @@ public class JungleBattleTowerStructure extends Structure {
             double distance = length(difference);
 
             for (int step = 0; step < distance; step++) {
+
+                double stepPct = ((double) step) / distance;
+
                 BlockPos offset = currentTrunkPos.offset((int) (normalize.x * step), (int) (normalize.y * step), (int) (normalize.z * step));
                 branchOrigins.accept(offset);
                 sphereAround(branchRadius, offset, logPlacer);
+
+                if (randomSource.nextDouble() < stepPct) {
+                    BlockPos.MutableBlockPos leaveSpawner = new BlockPos.MutableBlockPos();
+
+                    for (int i = 0; i < randomSource.nextInt(branchRadius + 8); i++) {
+                        leaveSpawner.setWithOffset(offset, Direction.values()[randomSource.nextInt(Direction.values().length - 1)]);
+                        logPlacer.accept(leaveSpawner);
+
+                    }
+
+                    sphereAround(randomSource.nextInt(4, 6), Mth.randomBetween(randomSource, 0.1F, 0.6F), Mth.randomBetween(randomSource, 0.1F, 0.6F), leaveSpawner, leavesPlacer);
+                }
             }
 
             if (internalCount < totalSegmentCount) {
