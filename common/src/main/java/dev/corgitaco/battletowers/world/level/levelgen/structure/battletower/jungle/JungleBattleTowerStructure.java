@@ -1,6 +1,5 @@
 package dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle;
 
-import com.google.common.cache.RemovalListener;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructureTypes;
@@ -58,7 +57,8 @@ public class JungleBattleTowerStructure extends Structure {
 
             Consumer<BlockPos> boxCreation = pos -> map.computeIfAbsent(ChunkPos.asLong(pos), key -> new UnsafeBoundingBox()).encapsulate(pos);
 
-            forAllPositions(origin, xoroshiroRandomSource, boxCreation, lists -> {},  boxCreation);
+            forAllPositions(origin, xoroshiroRandomSource, boxCreation, lists -> {
+            }, boxCreation);
 
             for (UnsafeBoundingBox value : map.values()) {
                 piecesBuilder.addPiece(new JungleBattleTowerPiece(0, value.toBoundingBox(), origin));
@@ -94,7 +94,7 @@ public class JungleBattleTowerStructure extends Structure {
         positions.add(mutableBlockPos.asLong());
 
         int rawStep = 0;
-        int heightOffset = randomSource.nextInt(30, 50);
+        int heightOffset = randomSource.nextInt(20, 35);
 
 
         double noise = (new ImprovedNoise(randomSource).noise(0, 0, 0) + 1) * 0.5F;
@@ -144,12 +144,41 @@ public class JungleBattleTowerStructure extends Structure {
     }
 
     private static void generateBranches(RandomSource randomSource, LongList treeTrunkPositions, Consumer<BlockPos> logPlacer, Consumer<List<BlockPos>> branchesGetter, Consumer<BlockPos> leavesPlacer) {
-        for (Long treeTrunkPosition : treeTrunkPositions) {
+        for (int i = 1; i < treeTrunkPositions.size() - 1; i++) {
+            long currentTreeTrunkPackedPosition = treeTrunkPositions.getLong(i);
+            BlockPos currentTrunkPos = BlockPos.of(currentTreeTrunkPackedPosition);
+
+            long nextTreeTrunkPackedPosition = treeTrunkPositions.getLong(i + 1);
+            BlockPos nextTrunkPos = BlockPos.of(nextTreeTrunkPackedPosition);
+
+
+            BlockPos difference = nextTrunkPos.subtract(currentTrunkPos);
+
+            Vector3d normalized = normalize(difference);
+
+            double distance = length(difference);
+
+            for (double pct = 0; pct < 1.0; pct += 0.3) {
+                double scalar = distance * pct;
+                BlockPos branchOrigin = currentTrunkPos.offset((int) (normalized.x * scalar), (int) (normalized.y * scalar), (int) (normalized.z * scalar));
+
+                List<BlockPos> branchPositions = new ArrayList<>();
+                recursivelyGenerateBranches(3, 1, 5, UniformInt.of(20, 30), UniformInt.of(-6, 0), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
+                    branchPositions.add(pos.immutable());
+                }, leavesPlacer, branchOrigin, 0);
+
+                branchesGetter.accept(branchPositions);
+            }
+        }
+
+        {
+            long currentTreeTrunkPackedPosition = treeTrunkPositions.getLong(treeTrunkPositions.size() - 1);
+            BlockPos currentTrunkPos = BlockPos.of(currentTreeTrunkPackedPosition);
+
             List<BlockPos> branchPositions = new ArrayList<>();
-            BlockPos currentTrunkPos = BlockPos.of(treeTrunkPosition);
-            recursivelyGenerateBranches(3, randomSource.nextInt(1, 4), 6, UniformInt.of(20, 30), UniformInt.of(-6, 0), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
+            recursivelyGenerateBranches(1, randomSource.nextInt(10, 15), 3, UniformInt.of(15, 25), UniformInt.of(3, 7), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
                 branchPositions.add(pos.immutable());
-            }, leavesPlacer, currentTrunkPos,  0);
+            }, leavesPlacer, currentTrunkPos, 0);
 
             branchesGetter.accept(branchPositions);
         }
@@ -179,21 +208,19 @@ public class JungleBattleTowerStructure extends Structure {
 
             if (internalCount < totalSegmentCount) {
                 float angleRange = angleGetter.getMaxValue() - angleGetter.getMinValue();
-                float minInclusive = angle - (angleRange * 0.2F);
-                float maxExclusive = angle + (angleRange * 0.2F);
-                recursivelyGenerateBranches(totalSegmentCount, branchCount + randomSource.nextIntBetweenInclusive(1, 2), branchRadius - 2, ConstantInt.of((int) (range * 0.9F)), yOffset, UniformFloat.of(minInclusive, maxExclusive), randomSource, logPlacer, branchOrigins, leavesPlacer, endPos, internalCount + 1);
+                float minInclusive = angle - (Math.max(45, angleRange * 0.4F));
+                float maxExclusive = angle + (Math.max(45, angleRange * 0.4F));
+                recursivelyGenerateBranches(totalSegmentCount, branchCount + randomSource.nextIntBetweenInclusive(1, 2), branchRadius - 1, ConstantInt.of((int) (range * 0.7F)), yOffset, UniformFloat.of(minInclusive, maxExclusive), randomSource, logPlacer, branchOrigins, leavesPlacer, endPos, internalCount + 1);
             }
         }
     }
 
-
-    private static final ImprovedNoise noise = new ImprovedNoise(new LegacyRandomSource(0));
-
     public static void sphereAround(int width, BlockPos origin, Consumer<BlockPos> consumer) {
-        sphereAround(width, 0.1F, 0.2F, origin, consumer);
+        sphereAround(width, 0.1F, 0.5F, origin, consumer);
     }
 
     public static void sphereAround(int width, double freq, double minRadius, BlockPos origin, Consumer<BlockPos> consumer) {
+        ImprovedNoise noise = new ImprovedNoise(new LegacyRandomSource(0));
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
         for (int x = -width; x <= width; x++) {
             for (int y = -width; y <= width; y++) {
@@ -211,7 +238,6 @@ public class JungleBattleTowerStructure extends Structure {
         }
     }
 
-
     public static Vector3d normalize(Vec3i vector) {
         float length = (float) Math.sqrt(vector.getX() * vector.getX() + vector.getY() * vector.getY() + vector.getZ() * vector.getZ());
         if (length == 0) {
@@ -222,5 +248,9 @@ public class JungleBattleTowerStructure extends Structure {
 
     public static double length(Vec3i vector) {
         return Math.sqrt(vector.getX() * vector.getX() + vector.getY() * vector.getY() + vector.getZ() * vector.getZ());
+    }
+
+    public static double hLength(Vec3i vector) {
+        return Math.sqrt(vector.getX() * vector.getX() + vector.getZ() * vector.getZ());
     }
 }
