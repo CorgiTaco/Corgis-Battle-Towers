@@ -1,5 +1,6 @@
 package dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle;
 
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructureTypes;
@@ -7,11 +8,13 @@ import dev.corgitaco.battletowers.world.level.levelgen.structure.UnsafeBoundingB
 import it.unimi.dsi.fastutil.longs.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Vec3i;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.valueproviders.*;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.*;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -38,18 +41,28 @@ public class JungleBattleTowerStructure extends Structure {
 
     @Override
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context) {
+        ChunkPos chunkPos = context.chunkPos();
+
+
+        RandomState randomState = context.randomState();
+        WorldgenRandom random = context.random();
+        ChunkGenerator chunkGenerator = context.chunkGenerator();
+
+        int blockX = chunkPos.getBlockX(random.nextInt(16));
+        int blockZ = chunkPos.getBlockZ(random.nextInt(16));
+        BlockPos origin = new BlockPos(blockX, chunkGenerator.getBaseHeight(blockX, blockZ, Heightmap.Types.OCEAN_FLOOR_WG, context.heightAccessor(), randomState), blockZ);
+
+
+        int blendRadius = 128;
+        int blendStep = 16;
+
+        Pair<BlockPos, Holder<Biome>> biomeHorizontal = context.biomeSource().findBiomeHorizontal(origin.getX(), origin.getY(), origin.getZ(), blendRadius, blendStep, biomeHolder -> !context.validBiome().test(biomeHolder), random, false, context.randomState().sampler());
+
+        if (biomeHorizontal != null) {
+            return Optional.empty();
+        }
+
         return onTopOfChunkCenter(context, Heightmap.Types.OCEAN_FLOOR_WG, (piecesBuilder) -> {
-            ChunkPos chunkPos = context.chunkPos();
-
-            RandomState randomState = context.randomState();
-            WorldgenRandom random = context.random();
-            ChunkGenerator chunkGenerator = context.chunkGenerator();
-
-            int blockX = chunkPos.getBlockX(random.nextInt(16));
-            int blockZ = chunkPos.getBlockZ(random.nextInt(16));
-            BlockPos origin = new BlockPos(blockX, chunkGenerator.getBaseHeight(blockX, blockZ, Heightmap.Types.OCEAN_FLOOR_WG, context.heightAccessor(), randomState), blockZ);
-
-
             XoroshiroRandomSource xoroshiroRandomSource = new XoroshiroRandomSource(origin.asLong() + context.seed());
 
             Long2ObjectOpenHashMap<UnsafeBoundingBox> map = new Long2ObjectOpenHashMap<>();

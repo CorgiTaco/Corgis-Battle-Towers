@@ -36,7 +36,6 @@ public class JungleBattleTowerPiece extends StructurePiece {
 
     @Override
     public void postProcess(WorldGenLevel level, StructureManager structureManager, ChunkGenerator generator, RandomSource random, BoundingBox box, ChunkPos chunkPos, BlockPos pos) {
-
         JungleBattleTowerStructure.forAllPositions(this.origin, new XoroshiroRandomSource(origin.asLong() + level.getSeed()), pos1 -> {
             if (box.isInside(pos1)) {
                 level.setBlock(pos1, Blocks.JUNGLE_WOOD.defaultBlockState(), 2);
