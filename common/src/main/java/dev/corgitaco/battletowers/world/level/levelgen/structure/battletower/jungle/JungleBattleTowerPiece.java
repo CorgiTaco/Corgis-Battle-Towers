@@ -117,7 +117,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
 
                     tries++;
 
-                    if (random.nextDouble() < 0.01) {
+                    if (random.nextDouble() < 0.003) {
 
                         BlockPos.MutableBlockPos mutableBlockPos = new BlockPos.MutableBlockPos().set(mutable);
                         for (int y = 0; y < 20; y++) {

@@ -29,7 +29,7 @@ public class DurianTurretEntity extends Mob implements GeoEntity, RangedAttackMo
     protected void registerGoals() {
         super.registerGoals();
         this.goalSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true, false));
-        this.goalSelector.addGoal(1, new RangedAttackGoal(this, 0, 300, 255));
+        this.goalSelector.addGoal(1, new RangedAttackGoal(this, 0, 30, 70, 255));
     }
 
     @Override
@@ -76,7 +76,7 @@ public class DurianTurretEntity extends Mob implements GeoEntity, RangedAttackMo
 
         Vec3 spawnPos = position();
         durianBombEntity.setPos(spawnPos);
-        durianBombEntity.shootFromRotation(this, this.getXRot(), this.getYHeadRot(), 0, 0.2F, 0);
+        durianBombEntity.shootFromRotation(this, this.getXRot(), this.getYHeadRot(), 0, 0.2F, 3);
 
         Vec3 velocity = durianBombEntity.getDeltaMovement();
         durianBombEntity.xPower = velocity.x;
