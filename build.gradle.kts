@@ -48,6 +48,7 @@ subprojects {
         compileOnly("org.jetbrains:annotations:24.1.0")
         compileOnly("com.google.auto.service:auto-service:1.1.1")
         annotationProcessor("com.google.auto.service:auto-service:1.1.1")
+        implementation("org.roaringbitmap:RoaringBitmap:1.2.1")
     }
 
     java {

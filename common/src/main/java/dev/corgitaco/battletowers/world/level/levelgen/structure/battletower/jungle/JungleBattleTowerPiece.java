@@ -12,12 +12,12 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
@@ -25,10 +25,6 @@ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSeriali
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Consumer;
 
 public class JungleBattleTowerPiece extends StructurePiece {
 
@@ -65,10 +61,10 @@ public class JungleBattleTowerPiece extends StructurePiece {
 
         long chunkPosLong = chunkPos.toLong();
         {
-            LongSet trunkWallPositions = treeInfo.trunkInfo().wallPositions().get(chunkPosLong);
+            BitSetChunkData trunkWallPositions = treeInfo.trunkInfo().wallPositions().get(chunkPosLong);
             if (trunkWallPositions != null) {
-                trunkWallPositions.forEach(value -> {
-                    mutable.set(value);
+                trunkWallPositions.forEach(chunkPos, (x, y, z) -> {
+                    mutable.set(x, y, z);
                     if (this.boundingBox.isInside(mutable)) {
                         chunk.setBlockState(mutable, Blocks.JUNGLE_WOOD.defaultBlockState(), false);
                     }
@@ -76,10 +72,10 @@ public class JungleBattleTowerPiece extends StructurePiece {
             }
         }
         {
-            LongSet branchPositions = treeInfo.branchInfo().branchPositions().get(chunkPosLong);
+            BitSetChunkData branchPositions = treeInfo.branchInfo().branchPositions().get(chunkPosLong);
             if (branchPositions != null) {
-                branchPositions.forEach(value -> {
-                    mutable.set(value);
+                branchPositions.forEach(chunkPos, (x, y, z) -> {
+                    mutable.set(x, y, z);
                     if (this.boundingBox.isInside(mutable)) {
                         chunk.setBlockState(mutable, Blocks.JUNGLE_WOOD.defaultBlockState(), false);
                     }
@@ -88,10 +84,10 @@ public class JungleBattleTowerPiece extends StructurePiece {
         }
 
         {
-            LongSet leavePositions = treeInfo.branchInfo().branchLeavePositions().get(chunkPosLong);
+            BitSetChunkData leavePositions = treeInfo.branchInfo().branchLeavePositions().get(chunkPosLong);
             if (leavePositions != null) {
-                leavePositions.forEach(value -> {
-                    mutable.set(value);
+                leavePositions.forEach(chunkPos, (x, y, z) -> {
+                    mutable.set(x, y, z);
                     if (this.boundingBox.isInside(mutable) && chunk.getBlockState(mutable).isAir()) {
                         chunk.setBlockState(mutable, Blocks.JUNGLE_LEAVES.defaultBlockState(), false);
                         chunk.markPosForPostprocessing(mutable);
@@ -146,65 +142,21 @@ public class JungleBattleTowerPiece extends StructurePiece {
         StructurePiece structurePiece = structureAt.getPieces().get(0);
 
         if (structurePiece instanceof JungleBattleTowerPiece bigTreeInfo) {
-            bigTreeInfo.loadInfo(level.getSeed());
+            bigTreeInfo.loadInfo(level.getSeed(), level);
 
             return bigTreeInfo.cachedTreeData;
         }
 
 
         return null;
-
     }
 
-    public void loadInfo(long seed) {
+
+    public void loadInfo(long seed, LevelHeightAccessor levelHeightAccessor) {
         if (!calculated) {
             synchronized (this) {
                 if (!calculated) {
-                    Long2ObjectMap<LongSet> insideTrunkPositions = new Long2ObjectOpenHashMap<>();
-                    Long2ObjectMap<LongSet> placedTrunkPositions = new Long2ObjectOpenHashMap<>();
-                    Long2ObjectMap<LongSet> trunkEdgePositions = new Long2ObjectOpenHashMap<>();
-                    Long2ObjectMap<LongSet> branchPositions = new Long2ObjectOpenHashMap<>();
-                    Long2ObjectMap<LongSet> branchEdgePositions = new Long2ObjectOpenHashMap<>();
-                    Long2ObjectMap<LongSet> leavePositions = new Long2ObjectOpenHashMap<>();
-                    List<LongList> branches = new ArrayList<>();
-
-                    Consumer<BlockPos> trunkLogPlacer = trunkLogPos -> placedTrunkPositions.computeIfAbsent(ChunkPos.asLong(trunkLogPos), key -> new LongOpenHashBigSet()).add(trunkLogPos.asLong());
-                    Consumer<BlockPos> trunkInsidePlacer = insideTrunkPos -> insideTrunkPositions.computeIfAbsent(ChunkPos.asLong(insideTrunkPos), key -> new LongOpenHashBigSet()).add(insideTrunkPos.asLong());
-                    Consumer<BlockPos> branchLogPlacer = branchLogPos -> branchPositions.computeIfAbsent(ChunkPos.asLong(branchLogPos), key -> new LongOpenHashBigSet()).add(branchLogPos.asLong());
-
-
-                    Consumer<List<BlockPos>> branchGetter = branch -> {
-                        LongList positions = new LongArrayList(branch.size());
-                        for (BlockPos blockPos : branch) {
-                            positions.add(blockPos.asLong());
-                        }
-                        branches.add(LongLists.unmodifiable(positions));
-                    };
-
-                    Consumer<BlockPos> leavePlacer = leavesPlacer -> leavePositions.computeIfAbsent(ChunkPos.asLong(leavesPlacer), key -> new LongOpenHashBigSet()).add(leavesPlacer.asLong());
-
-                    XoroshiroRandomSource randomSource = new XoroshiroRandomSource(origin.asLong() + seed);
-                    JungleBattleTowerStructure.forAllPositions(this.origin,
-                            randomSource,
-                            trunkLogPlacer,
-                            trunkInsidePlacer,
-                            branchLogPlacer,
-                            branchGetter,
-                            leavePlacer
-                    );
-
-                    this.cachedTreeData = new BigTreeInfo(
-                            new BigTreeInfo.TrunkInfo(
-                                    Long2ObjectMaps.unmodifiable(insideTrunkPositions),
-                                    Long2ObjectMaps.unmodifiable(placedTrunkPositions),
-                                    Long2ObjectMaps.unmodifiable(trunkEdgePositions)
-                            ),
-                            new BigTreeInfo.BranchInfo(
-                                    Long2ObjectMaps.unmodifiable(branchPositions),
-                                    Long2ObjectMaps.unmodifiable(branchEdgePositions),
-                                    Long2ObjectMaps.unmodifiable(leavePositions),
-                                    Collections.unmodifiableList(branches)
-                            ))
+                    this.cachedTreeData = BigTreeInfo.getBigTreeInfo(this.origin, seed, () -> new BitSetBasedTreeChunkData(16, levelHeightAccessor))
                     ;
 
                     this.calculated = true;
@@ -212,4 +164,6 @@ public class JungleBattleTowerPiece extends StructurePiece {
             }
         }
     }
+
+
 }
