@@ -19,7 +19,7 @@ public record BigTreeInfo(
 
     public record BranchInfo(Long2ObjectMap<LongSet> branchPositions,
                              Long2ObjectMap<LongSet> branchEdgePositions,
-                             Long2ObjectMap<LongSet> branchLeavePositions,
+                             Long2ObjectMap<LongSet> branchLeafPositions,
                              List<LongList> branches
     ) {
     }

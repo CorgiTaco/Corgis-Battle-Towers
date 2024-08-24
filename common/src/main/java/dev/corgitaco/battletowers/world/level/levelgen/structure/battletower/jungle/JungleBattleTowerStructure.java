@@ -84,11 +84,11 @@ public class JungleBattleTowerStructure extends Structure {
     }
 
 
-    public static void forAllPositions(BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer, Consumer<BlockPos> branchLogPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
-        forAllPositions(8, 16, origin, randomSource, trunkLogPlacer, trunkInsidePlacer, branchLogPlacer, branchPlacer, leavePlacer);
+    public static void forAllPositions(BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer, Consumer<BlockPos> branchLogPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leafPlacer) {
+        forAllPositions(8, 16, origin, randomSource, trunkLogPlacer, trunkInsidePlacer, branchLogPlacer, branchPlacer, leafPlacer);
     }
 
-    public static void forAllPositions(int range, int width, BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer, Consumer<BlockPos> branchLogPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leavePlacer) {
+    public static void forAllPositions(int range, int width, BlockPos origin, RandomSource randomSource, Consumer<BlockPos> trunkLogPlacer, Consumer<BlockPos> trunkInsidePlacer, Consumer<BlockPos> branchLogPlacer, Consumer<List<BlockPos>> branchPlacer, Consumer<BlockPos> leafPlacer) {
         LongList treeTrunkPositions = getTreeTrunkPositions(range, origin, randomSource);
         LongSet positions = generateTrunk(treeTrunkPositions, width, trunkLogPlacer, trunkInsidePlacer);
         generateBranches(randomSource, treeTrunkPositions, pos -> {
@@ -97,7 +97,7 @@ public class JungleBattleTowerStructure extends Structure {
             }
         }, branchPlacer, pos -> {
             if (!positions.contains(pos.asLong())) {
-                leavePlacer.accept(pos);
+                leafPlacer.accept(pos);
             }
         });
     }
@@ -198,7 +198,7 @@ public class JungleBattleTowerStructure extends Structure {
         return trunkPositions;
     }
 
-    private static void generateBranches(RandomSource randomSource, LongList treeTrunkPositions, Consumer<BlockPos> logPlacer, Consumer<List<BlockPos>> branchesGetter, Consumer<BlockPos> leavesPlacer) {
+    private static void generateBranches(RandomSource randomSource, LongList treeTrunkPositions, Consumer<BlockPos> logPlacer, Consumer<List<BlockPos>> branchesGetter, Consumer<BlockPos> leafPlacer) {
         for (int i = 1; i < treeTrunkPositions.size() - 1; i++) {
             long currentTreeTrunkPackedPosition = treeTrunkPositions.getLong(i);
             BlockPos currentTrunkPos = BlockPos.of(currentTreeTrunkPackedPosition);
@@ -220,7 +220,7 @@ public class JungleBattleTowerStructure extends Structure {
                 List<BlockPos> branchPositions = new ArrayList<>();
                 recursivelyGenerateBranches(3, 1, 5, UniformInt.of(20, 30), UniformInt.of(-6, 0), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
                     branchPositions.add(pos.immutable());
-                }, leavesPlacer, branchOrigin, 0);
+                }, leafPlacer, branchOrigin, 0);
 
                 branchesGetter.accept(branchPositions);
             }
@@ -233,7 +233,7 @@ public class JungleBattleTowerStructure extends Structure {
             List<BlockPos> branchPositions = new ArrayList<>();
             recursivelyGenerateBranches(2, randomSource.nextInt(10, 15), 4, UniformInt.of(20, 40), UniformInt.of(7, 15), UniformFloat.of(0, 360), randomSource, logPlacer, pos -> {
                 branchPositions.add(pos.immutable());
-            }, leavesPlacer, currentTrunkPos, 0);
+            }, leafPlacer, currentTrunkPos, 0);
 
             branchesGetter.accept(branchPositions);
         }
@@ -241,7 +241,7 @@ public class JungleBattleTowerStructure extends Structure {
 
     }
 
-    private static void recursivelyGenerateBranches(int totalSegmentCount, int branchCount, int branchRadius, IntProvider rangeGetter, IntProvider yOffset, FloatProvider angleGetter, RandomSource randomSource, Consumer<BlockPos> logPlacer, Consumer<BlockPos> branchOrigins, Consumer<BlockPos> leavesPlacer, BlockPos currentTrunkPos, int internalCount) {
+    private static void recursivelyGenerateBranches(int totalSegmentCount, int branchCount, int branchRadius, IntProvider rangeGetter, IntProvider yOffset, FloatProvider angleGetter, RandomSource randomSource, Consumer<BlockPos> logPlacer, Consumer<BlockPos> branchOrigins, Consumer<BlockPos> leafPlacer, BlockPos currentTrunkPos, int internalCount) {
         for (int count = 0; count < branchCount; count++) {
             float angle = angleGetter.sample(randomSource);
             int range = rangeGetter.sample(randomSource);
@@ -264,15 +264,15 @@ public class JungleBattleTowerStructure extends Structure {
                 sphereAround(branchRadius, offset, logPlacer);
 
                 if (randomSource.nextDouble() < stepPct) {
-                    BlockPos.MutableBlockPos leaveSpawner = new BlockPos.MutableBlockPos();
+                    BlockPos.MutableBlockPos leafSpawner = new BlockPos.MutableBlockPos();
 
                     for (int i = 0; i < randomSource.nextInt(branchRadius + 8); i++) {
-                        leaveSpawner.setWithOffset(offset, Direction.values()[randomSource.nextInt(Direction.values().length - 1)]);
-                        logPlacer.accept(leaveSpawner);
+                        leafSpawner.setWithOffset(offset, Direction.values()[randomSource.nextInt(Direction.values().length - 1)]);
+                        logPlacer.accept(leafSpawner);
 
                     }
 
-                    sphereAround(randomSource.nextInt(4, 6), Mth.randomBetween(randomSource, 0.1F, 0.6F), Mth.randomBetween(randomSource, 0.1F, 0.6F), leaveSpawner, leavesPlacer);
+                    sphereAround(randomSource.nextInt(4, 6), Mth.randomBetween(randomSource, 0.1F, 0.6F), Mth.randomBetween(randomSource, 0.1F, 0.6F), leafSpawner, leafPlacer);
                 }
             }
 
@@ -280,7 +280,7 @@ public class JungleBattleTowerStructure extends Structure {
                 float angleRange = angleGetter.getMaxValue() - angleGetter.getMinValue();
                 float minInclusive = angle - (Math.max(45, angleRange * 0.4F));
                 float maxExclusive = angle + (Math.max(45, angleRange * 0.4F));
-                recursivelyGenerateBranches(totalSegmentCount, branchCount + randomSource.nextIntBetweenInclusive(1, 2), branchRadius - 1, ConstantInt.of((int) (range * 0.7F)), yOffset, UniformFloat.of(minInclusive, maxExclusive), randomSource, logPlacer, branchOrigins, leavesPlacer, endPos, internalCount + 1);
+                recursivelyGenerateBranches(totalSegmentCount, branchCount + randomSource.nextIntBetweenInclusive(1, 2), branchRadius - 1, ConstantInt.of((int) (range * 0.7F)), yOffset, UniformFloat.of(minInclusive, maxExclusive), randomSource, logPlacer, branchOrigins, leafPlacer, endPos, internalCount + 1);
             }
         }
     }
