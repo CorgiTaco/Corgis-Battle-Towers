@@ -26,21 +26,18 @@ import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class JungleBattleTowerPiece extends StructurePiece {
 
     private final BlockPos origin;
 
-    private final AtomicReference<BigTreeInfo> cachedTreeData = new AtomicReference<>(null);
+    @Nullable
+    private BigTreeInfo cachedTreeData = null;
 
-    private final ReentrantLock lock = new ReentrantLock();
-
-    private final AtomicBoolean isCalculated = new AtomicBoolean(false);
+    private volatile boolean calculated = false;
 
     public JungleBattleTowerPiece(StructurePieceSerializationContext context, CompoundTag tag) {
         super(CBTStructurePieceTypes.JUNGLE_BATTLE_TOWER_PIECE.get(), tag);
@@ -151,7 +148,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
         if (structurePiece instanceof JungleBattleTowerPiece bigTreeInfo) {
             bigTreeInfo.loadInfo(level.getSeed());
 
-            return bigTreeInfo.cachedTreeData.getAcquire();
+            return bigTreeInfo.cachedTreeData;
         }
 
 
@@ -160,49 +157,59 @@ public class JungleBattleTowerPiece extends StructurePiece {
     }
 
     public void loadInfo(long seed) {
-        lock.lock();
-        try {
-            if (!isCalculated.get()) {
-                isCalculated.set(true);
+        if (!calculated) {
+            synchronized (this) {
+                if (!calculated) {
+                    Long2ObjectMap<LongSet> insideTrunkPositions = new Long2ObjectOpenHashMap<>();
+                    Long2ObjectMap<LongSet> placedTrunkPositions = new Long2ObjectOpenHashMap<>();
+                    Long2ObjectMap<LongSet> trunkEdgePositions = new Long2ObjectOpenHashMap<>();
+                    Long2ObjectMap<LongSet> branchPositions = new Long2ObjectOpenHashMap<>();
+                    Long2ObjectMap<LongSet> branchEdgePositions = new Long2ObjectOpenHashMap<>();
+                    Long2ObjectMap<LongSet> leavePositions = new Long2ObjectOpenHashMap<>();
+                    List<LongList> branches = new ArrayList<>();
 
-                Long2ObjectMap<LongSet> insideTrunkPositions = new Long2ObjectOpenHashMap<>();
-                Long2ObjectMap<LongSet> placedTrunkPositions = new Long2ObjectOpenHashMap<>();
-                Long2ObjectMap<LongSet> trunkEdgePositions = new Long2ObjectOpenHashMap<>();
-                Long2ObjectMap<LongSet> branchPositions = new Long2ObjectOpenHashMap<>();
-                Long2ObjectMap<LongSet> branchEdgePositions = new Long2ObjectOpenHashMap<>();
-                Long2ObjectMap<LongSet> leavePositions = new Long2ObjectOpenHashMap<>();
-                List<LongList> branches = new ArrayList<>();
-
-                Consumer<BlockPos> trunkLogPlacer = trunkLogPos -> placedTrunkPositions.computeIfAbsent(ChunkPos.asLong(trunkLogPos), key -> new LongOpenHashBigSet()).add(trunkLogPos.asLong());
-                Consumer<BlockPos> trunkInsidePlacer = insideTrunkPos -> insideTrunkPositions.computeIfAbsent(ChunkPos.asLong(insideTrunkPos), key -> new LongOpenHashBigSet()).add(insideTrunkPos.asLong());
-                Consumer<BlockPos> branchLogPlacer = branchLogPos -> branchPositions.computeIfAbsent(ChunkPos.asLong(branchLogPos), key -> new LongOpenHashBigSet()).add(branchLogPos.asLong());
+                    Consumer<BlockPos> trunkLogPlacer = trunkLogPos -> placedTrunkPositions.computeIfAbsent(ChunkPos.asLong(trunkLogPos), key -> new LongOpenHashBigSet()).add(trunkLogPos.asLong());
+                    Consumer<BlockPos> trunkInsidePlacer = insideTrunkPos -> insideTrunkPositions.computeIfAbsent(ChunkPos.asLong(insideTrunkPos), key -> new LongOpenHashBigSet()).add(insideTrunkPos.asLong());
+                    Consumer<BlockPos> branchLogPlacer = branchLogPos -> branchPositions.computeIfAbsent(ChunkPos.asLong(branchLogPos), key -> new LongOpenHashBigSet()).add(branchLogPos.asLong());
 
 
-                Consumer<List<BlockPos>> branchGetter = branch -> {
-                    LongList positions = new LongArrayList(branch.size());
-                    for (BlockPos blockPos : branch) {
-                        positions.add(blockPos.asLong());
-                    }
-                    branches.add(positions);
-                };
+                    Consumer<List<BlockPos>> branchGetter = branch -> {
+                        LongList positions = new LongArrayList(branch.size());
+                        for (BlockPos blockPos : branch) {
+                            positions.add(blockPos.asLong());
+                        }
+                        branches.add(LongLists.unmodifiable(positions));
+                    };
 
-                Consumer<BlockPos> leavePlacer = leavesPlacer -> leavePositions.computeIfAbsent(ChunkPos.asLong(leavesPlacer), key -> new LongOpenHashBigSet()).add(leavesPlacer.asLong());
+                    Consumer<BlockPos> leavePlacer = leavesPlacer -> leavePositions.computeIfAbsent(ChunkPos.asLong(leavesPlacer), key -> new LongOpenHashBigSet()).add(leavesPlacer.asLong());
 
-                XoroshiroRandomSource randomSource = new XoroshiroRandomSource(origin.asLong() + seed);
-                JungleBattleTowerStructure.forAllPositions(this.origin,
-                        randomSource,
-                        trunkLogPlacer,
-                        trunkInsidePlacer,
-                        branchLogPlacer,
-                        branchGetter,
-                        leavePlacer
-                );
+                    XoroshiroRandomSource randomSource = new XoroshiroRandomSource(origin.asLong() + seed);
+                    JungleBattleTowerStructure.forAllPositions(this.origin,
+                            randomSource,
+                            trunkLogPlacer,
+                            trunkInsidePlacer,
+                            branchLogPlacer,
+                            branchGetter,
+                            leavePlacer
+                    );
 
+                    this.cachedTreeData = new BigTreeInfo(
+                            new BigTreeInfo.TrunkInfo(
+                                    Long2ObjectMaps.unmodifiable(insideTrunkPositions),
+                                    Long2ObjectMaps.unmodifiable(placedTrunkPositions),
+                                    Long2ObjectMaps.unmodifiable(trunkEdgePositions)
+                            ),
+                            new BigTreeInfo.BranchInfo(
+                                    Long2ObjectMaps.unmodifiable(branchPositions),
+                                    Long2ObjectMaps.unmodifiable(branchEdgePositions),
+                                    Long2ObjectMaps.unmodifiable(leavePositions),
+                                    Collections.unmodifiableList(branches)
+                            ))
+                    ;
 
-                this.cachedTreeData.set(new BigTreeInfo(new BigTreeInfo.TrunkInfo(insideTrunkPositions, placedTrunkPositions, trunkEdgePositions), new BigTreeInfo.BranchInfo(branchPositions, branchEdgePositions, leavePositions, branches)));
+                    this.calculated = true;
+                }
             }
-        } finally {
-            lock.unlock();
         }
     }
 }
