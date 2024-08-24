@@ -117,7 +117,7 @@ public class JungleBattleTowerStructure extends Structure {
         int heightOffset = randomSource.nextInt(20, 35);
 
 
-        double noise = (new ImprovedNoise(randomSource).noise(0, 0, 0) + 1) * 0.5F;
+        double noise = (new ImprovedNoise(randomSource).noise(origin.getX(), origin.getY(), origin.getZ()) + 1) * 0.5F;
         double angle = Mth.clampedLerp(-180, 180, noise);
         double xOffset = Math.cos(angle) * range;
 
