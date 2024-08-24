@@ -88,9 +88,9 @@ public class JungleBattleTowerPiece extends StructurePiece {
         }
 
         {
-            LongSet leavePositions = treeInfo.branchInfo().branchLeavePositions().get(chunkPosLong);
-            if (leavePositions != null) {
-                leavePositions.forEach(value -> {
+            LongSet leafPositions = treeInfo.branchInfo().branchLeafPositions().get(chunkPosLong);
+            if (leafPositions != null) {
+                leafPositions.forEach(value -> {
                     mutable.set(value);
                     if (this.boundingBox.isInside(mutable) && chunk.getBlockState(mutable).isAir()) {
                         chunk.setBlockState(mutable, Blocks.JUNGLE_LEAVES.defaultBlockState(), false);
@@ -165,7 +165,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
                     Long2ObjectMap<LongSet> trunkEdgePositions = new Long2ObjectOpenHashMap<>();
                     Long2ObjectMap<LongSet> branchPositions = new Long2ObjectOpenHashMap<>();
                     Long2ObjectMap<LongSet> branchEdgePositions = new Long2ObjectOpenHashMap<>();
-                    Long2ObjectMap<LongSet> leavePositions = new Long2ObjectOpenHashMap<>();
+                    Long2ObjectMap<LongSet> leafPositions = new Long2ObjectOpenHashMap<>();
                     List<LongList> branches = new ArrayList<>();
 
                     Consumer<BlockPos> trunkLogPlacer = trunkLogPos -> placedTrunkPositions.computeIfAbsent(ChunkPos.asLong(trunkLogPos), key -> new LongOpenHashBigSet()).add(trunkLogPos.asLong());
@@ -181,7 +181,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
                         branches.add(LongLists.unmodifiable(positions));
                     };
 
-                    Consumer<BlockPos> leavePlacer = leavesPlacer -> leavePositions.computeIfAbsent(ChunkPos.asLong(leavesPlacer), key -> new LongOpenHashBigSet()).add(leavesPlacer.asLong());
+                    Consumer<BlockPos> leafPlacer = blockPos -> leafPositions.computeIfAbsent(ChunkPos.asLong(blockPos), key -> new LongOpenHashBigSet()).add(blockPos.asLong());
 
                     XoroshiroRandomSource randomSource = new XoroshiroRandomSource(origin.asLong() + seed);
                     JungleBattleTowerStructure.forAllPositions(this.origin,
@@ -190,7 +190,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
                             trunkInsidePlacer,
                             branchLogPlacer,
                             branchGetter,
-                            leavePlacer
+                            leafPlacer
                     );
 
                     this.cachedTreeData = new BigTreeInfo(
@@ -202,7 +202,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
                             new BigTreeInfo.BranchInfo(
                                     Long2ObjectMaps.unmodifiable(branchPositions),
                                     Long2ObjectMaps.unmodifiable(branchEdgePositions),
-                                    Long2ObjectMaps.unmodifiable(leavePositions),
+                                    Long2ObjectMaps.unmodifiable(leafPositions),
                                     Collections.unmodifiableList(branches)
                             ))
                     ;
