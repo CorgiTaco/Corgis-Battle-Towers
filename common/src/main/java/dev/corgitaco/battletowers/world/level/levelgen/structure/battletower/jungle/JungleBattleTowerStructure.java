@@ -6,10 +6,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructureTypes;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.UnsafeBoundingBox;
 import it.unimi.dsi.fastutil.longs.*;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Vec3i;
+import net.minecraft.core.*;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.valueproviders.*;
@@ -63,14 +60,19 @@ public class JungleBattleTowerStructure extends Structure {
         }
 
         return onTopOfChunkCenter(context, Heightmap.Types.OCEAN_FLOOR_WG, (piecesBuilder) -> {
-            XoroshiroRandomSource xoroshiroRandomSource = new XoroshiroRandomSource(origin.asLong() + context.seed());
 
             Long2ObjectOpenHashMap<UnsafeBoundingBox> map = new Long2ObjectOpenHashMap<>();
 
-            Consumer<BlockPos> boxCreation = pos -> map.computeIfAbsent(ChunkPos.asLong(pos), key -> new UnsafeBoundingBox()).encapsulate(pos);
+            BitSetChunkData.PosGetter boxCreation = (x, y, z) -> map.computeIfAbsent(ChunkPos.asLong(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z)), key -> new UnsafeBoundingBox()).encapsulate(x, y, z);
 
-            forAllPositions(origin, xoroshiroRandomSource, boxCreation, boxCreation, boxCreation, lists -> {
-            }, boxCreation);
+            TreeGenerator treeGenerator = new TreeGenerator(origin, context.seed(), 128, () -> new BitSetBasedTreeChunkData(16, context.heightAccessor()));
+
+            treeGenerator.forAllAvailableChunkData((chunkX, chunkZ, chunkData) -> {
+                if (chunkData != null) {
+                    chunkData.forEach(new ChunkPos(chunkX, chunkZ), boxCreation);
+                }
+            });
+
 
             for (UnsafeBoundingBox value : map.values()) {
                 piecesBuilder.addPiece(new JungleBattleTowerPiece(0, value.toBoundingBox(), origin));

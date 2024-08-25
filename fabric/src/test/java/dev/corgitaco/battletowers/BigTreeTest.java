@@ -14,33 +14,7 @@ public class BigTreeTest {
 
     @Test
     public void testBitSet() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
-        System.out.println("Starting...");
-        LevelHeightAccessor levelHeightAccessor = new LevelHeightAccessor() {
-            @Override
-            public int getHeight() {
-                return 384;
-            }
 
-            @Override
-            public int getMinBuildHeight() {
-                return -64;
-            }
-        };
-
-
-        for (int i = 0; i < 10; i++) {
-            BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new BitSetBasedTreeChunkData(16, levelHeightAccessor));
-        }
-
-        {
-            long startTime = System.currentTimeMillis();
-            for (int i = 0; i < 10; i++) {
-                BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new BitSetBasedTreeChunkData(16, levelHeightAccessor));
-            }
-            System.out.printf("Bitset Time spent: %d%n", System.currentTimeMillis() - startTime);
-        }
     }
 
     @Test

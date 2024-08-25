@@ -21,6 +21,8 @@ public interface BitSetChunkData {
 
     int pack(int x, int y, int z);
 
+    boolean occupied(int x, int y, int z);
+
     @FunctionalInterface
     interface PosGetter {
         void get(int x, int y, int z);

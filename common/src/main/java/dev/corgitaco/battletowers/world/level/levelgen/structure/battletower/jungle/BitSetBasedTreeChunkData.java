@@ -32,9 +32,9 @@ public class BitSetBasedTreeChunkData implements BitSetChunkData {
         for (int idx = this.data.nextSetBit(0); idx >= 0; idx = this.data.nextSetBit(idx + 1)) {
             int width = 1 << this.widthBits;
             int x = (idx >> 20) & (width - 1);
-            int y = (idx >> 10) & (this.height - 1);
+            int y = (idx >> 10) & (Mth.smallestEncompassingPowerOfTwo(this.height) - 1);
             int z = idx & (width - 1);
-            getter.get(chunkPos.getBlockX(x), y - this.minY, chunkPos.getBlockZ(z));
+            getter.get(chunkPos.getBlockX(x), y + this.minY, chunkPos.getBlockZ(z));
         }
     }
 
@@ -46,8 +46,13 @@ public class BitSetBasedTreeChunkData implements BitSetChunkData {
 
     public void remove(int x, int y, int z) {
         if (!locked) {
-            this.data.clear(pack(x, y, z));
+            this.data.clear(pack(x, y - minY, z));
         }
+    }
+
+    @Override
+    public boolean occupied(int x, int y, int z) {
+        return this.data.get(pack(x, y - minY, z));
     }
 
     public int pack(int x, int y, int z) {
