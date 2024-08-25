@@ -3,7 +3,6 @@ package dev.corgitaco.battletowers;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.BigTreeInfo;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.BitSetBasedTreeChunkData;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.BitSetChunkData;
-import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.RoaringBitMapBasedTreeChunkData;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
@@ -34,10 +33,6 @@ public class BigTreeTest {
         for (int i = 0; i < 10; i++) {
             BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new BitSetBasedTreeChunkData(16, levelHeightAccessor));
         }
-        for (int i = 0; i < 10; i++) {
-            BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new RoaringBitMapBasedTreeChunkData(16, levelHeightAccessor));
-        }
-
 
         {
             long startTime = System.currentTimeMillis();
@@ -46,14 +41,6 @@ public class BigTreeTest {
             }
             System.out.printf("Bitset Time spent: %d%n", System.currentTimeMillis() - startTime);
         }
-        {
-            long startTime = System.currentTimeMillis();
-            for (int i = 0; i < 10; i++) {
-                BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new RoaringBitMapBasedTreeChunkData(16, levelHeightAccessor));
-            }
-            System.out.printf("Roaring Time spent: %d%n", System.currentTimeMillis() - startTime);
-        }
-
     }
 
     @Test
@@ -80,10 +67,6 @@ public class BigTreeTest {
             value.forEach(new ChunkPos(0,0), mutableBlockPos::set);
         }
 
-        BigTreeInfo roaringBitmap = BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new RoaringBitMapBasedTreeChunkData(16, levelHeightAccessor));
-        for (BitSetChunkData value : roaringBitmap.trunkInfo().insideTrunkPositions().values()) {
-            value.forEach(new ChunkPos(0,0), mutableBlockPos::set);
-        }
 
         {
             long startTime = System.currentTimeMillis();
@@ -92,14 +75,6 @@ public class BigTreeTest {
             }
             System.out.printf("Bitset Time spent: %d%n", System.currentTimeMillis() - startTime);
         }
-        {
-            long startTime = System.currentTimeMillis();
-            for (BitSetChunkData value : roaringBitmap.trunkInfo().insideTrunkPositions().values()) {
-                value.forEach(new ChunkPos(0,0), mutableBlockPos::set);
-            }
-            System.out.printf("Roaring Time spent: %d%n", System.currentTimeMillis() - startTime);
-        }
-
     }
 
 }
