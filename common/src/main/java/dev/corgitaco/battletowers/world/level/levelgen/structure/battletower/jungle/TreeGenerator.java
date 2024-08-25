@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 
 public class TreeGenerator {
     private final RandomSource randomSource;
-    private final CachedNoiseSampler noise;
+    private CachedNoiseSampler noise;
 
     private final ChunkDataLookup<BitSetChunkData>[] treeComponentPositions;
 
@@ -48,6 +48,8 @@ public class TreeGenerator {
         generateTrunk(mutableBlockPos, treeTrunkPositions, trunkSphereGenerator);
         generateBranches(mutableBlockPos, treeTrunkPositions, blockPos -> {
         }, new NoiseSphereGenerator(1, 4, this.noise), new NoiseSphereGenerator(1, 6, this.noise));
+
+        this.noise = null;
     }
 
     public void generateTrunk(BlockPos.MutableBlockPos mutableBlockPos, LongList treeTrunkPositions, NoiseSphereGenerator sphereGenerator) {
