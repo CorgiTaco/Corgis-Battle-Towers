@@ -1,16 +1,19 @@
 package dev.corgitaco.battletowers;
 
-import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.BigTreeInfo;
-import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.BitSetBasedTreeChunkData;
+import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.IntSetChunkData;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle.TreeGenerator;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
 import net.minecraft.world.level.LevelHeightAccessor;
 import org.junit.jupiter.api.Test;
 
-public class TreeGeneratorTest {
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+public class TreeGeneratorTest {
 
 
     @Test
@@ -21,11 +24,8 @@ public class TreeGeneratorTest {
 
         System.out.println("Warming up...");
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 5; i++) {
             getTreeGenerator();
-        }
-        for (int i = 0; i < 100; i++) {
-            getLegacyTreeGenerator();
         }
 
         {
@@ -37,19 +37,26 @@ public class TreeGeneratorTest {
             long endTime = System.currentTimeMillis();
             System.out.printf("Took %dms to create 100 tree generators!%n", endTime - startTime);
         }
-        {
-            System.out.println("Beginning timer for legacy Tree Generator...");
-            long startTime = System.currentTimeMillis();
-            for (int i = 0; i < 100; i++) {
-                getLegacyTreeGenerator();
-            }
-            long endTime = System.currentTimeMillis();
-            System.out.printf("Took %dms to create 100 legacy tree generators!%n", endTime - startTime);
+    }
+
+    @Test
+    public void memoryTest() throws InterruptedException {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        System.out.println("Starting...");
+
+        System.out.println("Warming up...");
+
+        List<TreeGenerator> stored = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            System.out.println(i);
+            stored.add(getTreeGenerator());
         }
     }
 
-    private static void getLegacyTreeGenerator() {
-        BigTreeInfo.getBigTreeInfo(BlockPos.ZERO, 0, () -> new BitSetBasedTreeChunkData(16, new LevelHeightAccessor() {
+
+    private static TreeGenerator getTreeGenerator() {
+        return new TreeGenerator(BlockPos.ZERO, 0, 128, () -> new IntSetChunkData(16, new LevelHeightAccessor() {
             @Override
             public int getHeight() {
                 return 384;
@@ -59,20 +66,6 @@ public class TreeGeneratorTest {
             public int getMinBuildHeight() {
                 return -64;
             }
-        }));
-    }
-
-    private static void getTreeGenerator() {
-        new TreeGenerator(BlockPos.ZERO, 0, 128, () -> new BitSetBasedTreeChunkData(16, new LevelHeightAccessor() {
-            @Override
-            public int getHeight() {
-                return 384;
-            }
-
-            @Override
-            public int getMinBuildHeight() {
-                return -64;
-            }
-        }));
+        }, IntOpenHashSet::new));
     }
 }

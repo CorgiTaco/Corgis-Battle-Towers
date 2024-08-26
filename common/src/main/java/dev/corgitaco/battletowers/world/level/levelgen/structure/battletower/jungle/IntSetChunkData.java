@@ -1,58 +1,56 @@
 package dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.jungle;
 
+
+import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
 
-import java.util.BitSet;
+import java.util.function.Supplier;
 
-public class BitSetBasedTreeChunkData implements BitSetChunkData {
+public class IntSetChunkData implements ChunkData {
 
+
+    private IntSet data;
     private final int widthBits;
     private final int height;
     private final int minY;
-    private final BitSet data;
     private boolean locked = false;
 
-    public BitSetBasedTreeChunkData(int width, LevelHeightAccessor heightAccessor) {
-        this(Integer.numberOfTrailingZeros(width), heightAccessor.getHeight(), heightAccessor.getMinBuildHeight());
+    public IntSetChunkData(int width, LevelHeightAccessor heightAccessor, Supplier<IntSet> factory) {
+        this(Integer.numberOfTrailingZeros(width), heightAccessor.getHeight(), heightAccessor.getMinBuildHeight(), factory);
 
     }
 
-    public BitSetBasedTreeChunkData(int widthBits, int height, int minY) {
+    public IntSetChunkData(int widthBits, int height, int minY, Supplier<IntSet> factory) {
         this.widthBits = widthBits;
         this.height = height;
         this.minY = minY;
         int width = 1 << this.widthBits;
-        this.data = new BitSet(width * width * height);
+        this.data = factory.get();
     }
 
 
     public void forEach(ChunkPos chunkPos, PosGetter getter) {
-        for (int idx = this.data.nextSetBit(0); idx >= 0; idx = this.data.nextSetBit(idx + 1)) {
+        this.data.forEach(idx -> {
             int width = 1 << this.widthBits;
             int x = (idx >> 20) & (width - 1);
             int y = (idx >> 10) & (Mth.smallestEncompassingPowerOfTwo(this.height) - 1);
             int z = idx & (width - 1);
             getter.get(chunkPos.getBlockX(x), y + this.minY, chunkPos.getBlockZ(z));
-        }
+        });
     }
 
     public void add(int x, int y, int z) {
         if (!locked) {
-            this.data.set(pack(x, y - minY, z));
+            this.data.add(pack(x, y - minY, z));
         }
     }
 
     public void remove(int x, int y, int z) {
         if (!locked) {
-            this.data.clear(pack(x, y - minY, z));
+            this.data.remove(pack(x, y - minY, z));
         }
-    }
-
-    @Override
-    public boolean occupied(int x, int y, int z) {
-        return this.data.get(pack(x, y - minY, z));
     }
 
     public int pack(int x, int y, int z) {
@@ -65,17 +63,8 @@ public class BitSetBasedTreeChunkData implements BitSetChunkData {
         return (x << 20) | (y << 10) | z;
     }
 
-    public int[] unpack(int packedValue) {
-        int width = 1 << this.widthBits;
-        int x = (packedValue >> 20) & (width - 1);
-        int y = (packedValue >> 10) & (Mth.smallestEncompassingPowerOfTwo(this.height) - 1);
-        int z = packedValue & (width - 1);
-        return new int[]{x, y, z};
+    @Override
+    public boolean occupied(int x, int y, int z) {
+        return this.data.contains(pack(x, y - minY, z));
     }
-
-    private BitSetBasedTreeChunkData lock() {
-        this.locked = true;
-        return this;
-    }
-
 }

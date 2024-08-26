@@ -2,6 +2,7 @@ package dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.ju
 
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructurePieceTypes;
 import dev.corgitaco.battletowers.world.level.levelgen.structure.CBTStructures;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
@@ -37,9 +38,10 @@ public class JungleBattleTowerPiece extends StructurePiece {
         this.origin = NbtUtils.readBlockPos(tag.getCompound("origin"));
     }
 
-    public JungleBattleTowerPiece(int genDepth, BoundingBox boundingBox, BlockPos origin) {
+    public JungleBattleTowerPiece(int genDepth, BoundingBox boundingBox, BlockPos origin, TreeGenerator treeGenerator) {
         super(CBTStructurePieceTypes.JUNGLE_BATTLE_TOWER_PIECE.get(), genDepth, boundingBox);
         this.origin = origin;
+        this.cachedTreeData = treeGenerator;
     }
 
     @Override
@@ -57,7 +59,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
         ChunkAccess chunk = level.getChunk(chunkPos.x, chunkPos.z);
 
         {
-            BitSetChunkData trunkWallPositions = treeInfo.getPositions(chunkPos, TreeGenerator.TreeComponent.TRUNK_LOGS);
+            ChunkData trunkWallPositions = treeInfo.getPositions(chunkPos, TreeGenerator.TreeComponent.TRUNK_LOGS);
             if (trunkWallPositions != null) {
                 trunkWallPositions.forEach(chunkPos, (x, y, z) -> {
                     mutable.set(x, y, z);
@@ -69,7 +71,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
             }
         }
         {
-            BitSetChunkData branchPositions = treeInfo.getPositions(chunkPos, TreeGenerator.TreeComponent.BRANCH_LOGS);
+            ChunkData branchPositions = treeInfo.getPositions(chunkPos, TreeGenerator.TreeComponent.BRANCH_LOGS);
             if (branchPositions != null) {
                 branchPositions.forEach(chunkPos, (x, y, z) -> {
                     mutable.set(x, y, z);
@@ -81,7 +83,7 @@ public class JungleBattleTowerPiece extends StructurePiece {
         }
 
         {
-            BitSetChunkData leavePositions = treeInfo.getPositions(chunkPos, TreeGenerator.TreeComponent.BRANCH_LEAVES);
+            ChunkData leavePositions = treeInfo.getPositions(chunkPos, TreeGenerator.TreeComponent.BRANCH_LEAVES);
             if (leavePositions != null) {
                 leavePositions.forEach(chunkPos, (x, y, z) -> {
                     mutable.set(x, y, z);
@@ -98,21 +100,23 @@ public class JungleBattleTowerPiece extends StructurePiece {
     public TreeGenerator getTreeInfo(ChunkPos currentGeneratingChunk, StructureManager structureManager, WorldGenLevel level) {
         List<StructureStart> structureAt = structureManager.startsForStructure(SectionPos.of(currentGeneratingChunk, level.getMinSection()), level.registryAccess().registry(Registries.STRUCTURE).orElseThrow().getOrThrow(CBTStructures.JUNGLE_BATTLE_TOWER));
 
+        if (cachedTreeData == null) {
 
-        for (StructureStart structureStart : structureAt) {
-            StructurePiece structurePiece = structureStart.getPieces().get(0);
+            for (StructureStart structureStart : structureAt) {
+                StructurePiece structurePiece = structureStart.getPieces().get(0);
 
-            if (structurePiece instanceof JungleBattleTowerPiece jungleBattleTowerPiece) {
-                if (jungleBattleTowerPiece.origin.equals(this.origin)) {
-                    jungleBattleTowerPiece.loadInfo(level.getSeed(), level);
+                if (structurePiece instanceof JungleBattleTowerPiece jungleBattleTowerPiece) {
+                    if (jungleBattleTowerPiece.origin.equals(this.origin)) {
+                        jungleBattleTowerPiece.loadInfo(level.getSeed(), level);
 
-                    return jungleBattleTowerPiece.cachedTreeData;
+                        return jungleBattleTowerPiece.cachedTreeData;
+                    }
                 }
             }
         }
 
 
-        return null;
+        return cachedTreeData;
     }
 
 
@@ -120,13 +124,11 @@ public class JungleBattleTowerPiece extends StructurePiece {
         if (!calculated) {
             synchronized (this) {
                 if (!calculated) {
-                    this.cachedTreeData = new TreeGenerator(this.origin, seed, 128, () -> new BitSetBasedTreeChunkData(16, levelHeightAccessor));
+                    this.cachedTreeData = new TreeGenerator(this.origin, seed, 128, () -> new IntSetChunkData(16, levelHeightAccessor, IntOpenHashSet::new));
 
                     this.calculated = true;
                 }
             }
         }
     }
-
-
 }

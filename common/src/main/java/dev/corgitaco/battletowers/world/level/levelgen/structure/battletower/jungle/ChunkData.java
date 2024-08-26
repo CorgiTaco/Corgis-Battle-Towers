@@ -3,7 +3,7 @@ package dev.corgitaco.battletowers.world.level.levelgen.structure.battletower.ju
 import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
 
-public interface BitSetChunkData {
+public interface ChunkData {
 
     void forEach(ChunkPos chunkPos, PosGetter getter);
 

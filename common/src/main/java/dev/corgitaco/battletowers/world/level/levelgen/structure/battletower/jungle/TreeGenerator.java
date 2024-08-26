@@ -24,9 +24,9 @@ public class TreeGenerator {
     private final RandomSource randomSource;
     private CachedNoiseSampler noise;
 
-    private final ChunkDataLookup<BitSetChunkData>[] treeComponentPositions;
+    private final ChunkDataLookup<ChunkData>[] treeComponentPositions;
 
-    public TreeGenerator(BlockPos origin, long worldSeed, int horizontalRadius, Supplier<BitSetChunkData> factory) {
+    public TreeGenerator(BlockPos origin, long worldSeed, int horizontalRadius, Supplier<ChunkData> factory) {
         this.randomSource = new XoroshiroRandomSource(worldSeed + origin.asLong());
         this.noise = new CachedNoiseSampler(new ImprovedNoise(randomSource), 0.08F);
 
@@ -35,7 +35,7 @@ public class TreeGenerator {
 
         this.treeComponentPositions = new ChunkDataLookup[values.length];
         for (int i = 0; i < values.length; i++) {
-            treeComponentPositions[i] = new ChunkDataLookup<>(origin, horizontalRadius, BitSetChunkData[]::new, factory);
+            treeComponentPositions[i] = new ChunkDataLookup<>(origin, horizontalRadius, ChunkData[]::new, factory);
         }
 
 
@@ -76,9 +76,9 @@ public class TreeGenerator {
         }
 
 
-        ChunkDataLookup<BitSetChunkData> trunkLogs = getComponentPositions(TreeComponent.TRUNK_LOGS);
+        ChunkDataLookup<ChunkData> trunkLogs = getComponentPositions(TreeComponent.TRUNK_LOGS);
 
-        ChunkDataLookup<BitSetChunkData> trunkInside = getComponentPositions(TreeComponent.TRUNK_INSIDE);
+        ChunkDataLookup<ChunkData> trunkInside = getComponentPositions(TreeComponent.TRUNK_INSIDE);
 
 
         trunkLogs.forEach((chunkX, chunkZ, value) -> {
@@ -238,24 +238,24 @@ public class TreeGenerator {
         }
     }
 
-    public BitSetChunkData getPositions(ChunkPos pos, TreeComponent treeComponent) {
+    public ChunkData getPositions(ChunkPos pos, TreeComponent treeComponent) {
         return getPositions(pos.x, pos.z, treeComponent);
     }
 
-    public BitSetChunkData getPositions(Vec3i pos, TreeComponent treeComponent) {
+    public ChunkData getPositions(Vec3i pos, TreeComponent treeComponent) {
         return getPositions(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), treeComponent);
     }
 
-    public BitSetChunkData getPositions(int chunkX, int chunkZ, TreeComponent treeComponent) {
+    public ChunkData getPositions(int chunkX, int chunkZ, TreeComponent treeComponent) {
         return getComponentPositions(treeComponent).getForChunk(chunkX, chunkZ);
     }
 
-    public ChunkDataLookup<BitSetChunkData> getComponentPositions(TreeComponent treeComponent) {
+    public ChunkDataLookup<ChunkData> getComponentPositions(TreeComponent treeComponent) {
         return this.treeComponentPositions[treeComponent.ordinal()];
     }
 
 
-    public void forAllAvailableChunkData(ChunkDataLookup.Consumer<BitSetChunkData> bitSetLoopInfo) {
+    public void forAllAvailableChunkData(ChunkDataLookup.Consumer<ChunkData> bitSetLoopInfo) {
         for (TreeComponent value : TreeComponent.values()) {
             getComponentPositions(value).forEach(bitSetLoopInfo);
         }
@@ -285,16 +285,5 @@ public class TreeGenerator {
         BRANCH_LOGS,
         BRANCH_LEAVES,
         BRANCH_EDGE
-    }
-
-    private enum NoiseComponent {
-        LOGS,
-        LEAVES
-    }
-
-    @FunctionalInterface
-    public interface BitSetLoopInfo {
-
-        void get(int chunkX, int chunkZ, BitSetChunkData chunkData);
     }
 }

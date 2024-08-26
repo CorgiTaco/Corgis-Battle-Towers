@@ -1,5 +1,8 @@
 package dev.corgitaco.battletowers.data.collections;
 
+import it.unimi.dsi.fastutil.bytes.Byte2ObjectMap;
+import it.unimi.dsi.fastutil.bytes.Byte2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Vec3i;
@@ -14,7 +17,7 @@ public class ChunkDataLookup<T> {
     private final BlockPos origin;
     private final int chunkRadius;
 
-    private final T[] data;
+    private final Short2ObjectOpenHashMap<T> data;
     private final Supplier<T> dataFactory;
     private final BoundingBox bounds;
 
@@ -25,7 +28,7 @@ public class ChunkDataLookup<T> {
 
 
         int diameter = chunkRadius + chunkRadius;
-        this.data = storageFactory.apply(diameter * diameter);
+        this.data = new Short2ObjectOpenHashMap<>();
         this.dataFactory = dataFactory;
 
 
@@ -64,11 +67,11 @@ public class ChunkDataLookup<T> {
         int localZ = getLocalZFromChunkZ(chunkZ);
 
         int index = getIndex(localX, localZ);
-        T datum = this.data[index];
+        T datum = this.data.get((short) index);
 
         if (datum == null) {
             datum = this.dataFactory.get();
-            this.data[index] = datum;
+            this.data.put((short) index, datum);
         }
 
         return datum;
@@ -92,10 +95,11 @@ public class ChunkDataLookup<T> {
 
         int maxChunkX = SectionPos.blockToSectionCoord(this.bounds.maxX());
         int maxChunkZ = SectionPos.blockToSectionCoord(this.bounds.maxZ());
+
+
         for (int chunkX = minChunkX; chunkX < maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ < maxChunkZ; chunkZ++) {
-
-                consumer.forEach(chunkX, chunkZ, this.data[getIndex(getLocalXFromChunkX(chunkX), getLocalZFromChunkZ(chunkZ))]);
+                consumer.forEach(chunkX, chunkZ, this.data.get((short) getIndex(getLocalXFromChunkX(chunkX), getLocalZFromChunkZ(chunkZ))));
             }
         }
     }
