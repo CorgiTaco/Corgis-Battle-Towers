@@ -11,7 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class TreeGeneratorTest {
 
@@ -47,10 +48,39 @@ public class TreeGeneratorTest {
 
         System.out.println("Warming up...");
 
-        List<TreeGenerator> stored = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) {
-            System.out.println(i);
-            stored.add(getTreeGenerator());
+        int countPerThread = 1000000;
+
+        AtomicInteger integer = new AtomicInteger();
+        List<Thread> threads = new ArrayList<>();
+
+        ConcurrentHashMap<Integer, TreeGenerator> generatorConcurrentHashMap = new ConcurrentHashMap<>();
+
+        for (int thread = 0; thread < Runtime.getRuntime().availableProcessors() - 1; thread++) {
+            int finalThread = thread;
+            Thread thread1 = new Thread(() -> {
+                for (int i = 0; i < countPerThread; i++) {
+                    generatorConcurrentHashMap.put((finalThread * countPerThread)+ 1 + i, getTreeGenerator());
+                    System.out.println(integer.getAndIncrement());
+                }
+            });
+
+            thread1.start();
+            threads.add(thread1);
+        }
+
+
+        while (true) {
+            boolean closeProgram = true;
+            for (Thread thread : threads) {
+                if (thread.isAlive()) {
+                    closeProgram = false;
+                    break;
+                }
+            }
+
+            if (closeProgram) {
+                break;
+            }
         }
     }
 
